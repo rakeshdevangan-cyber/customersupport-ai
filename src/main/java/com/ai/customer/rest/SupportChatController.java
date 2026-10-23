@@ -1,6 +1,7 @@
 package com.ai.customer.rest;
 
 
+import com.ai.customer.dto.SupportClassification;
 import com.ai.customer.model.ChatRequest;
 import com.ai.customer.model.ChatResponse;
 import com.ai.customer.service.SupportChatService;
@@ -19,5 +20,10 @@ public class SupportChatController {
     @PostMapping("/chat")
     public ChatResponse chat(@RequestBody ChatRequest message) {
         return new ChatResponse(supportChatService.chat(message.message(), message.storeName(), message.tone()));
+    }
+
+    @PostMapping("/classify")
+    public SupportClassification classify(@RequestBody ChatRequest message) {
+        return supportChatService.classify(message.message());
     }
 }
