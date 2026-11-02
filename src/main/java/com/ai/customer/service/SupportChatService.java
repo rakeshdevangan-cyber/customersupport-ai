@@ -3,8 +3,11 @@ package com.ai.customer.service;
 import com.ai.customer.dto.SupportClassification;
 import com.ai.customer.exception.AiClassificationException;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,22 +25,32 @@ public class SupportChatService {
 
     private final ChatClient chatClient;
 
+    private final ChatClient classificationClient;
+
     private final SupportClassificationValidator supportClassificationValidator;
 
     public SupportChatService(ChatClient.Builder builder,
+                              ChatMemory chatMemory,
                               SupportClassificationValidator supportClassificationValidator) {
-        builder.defaultSystem("You are a customer support assistant for an online shopping platform.");
-        this.chatClient = builder.build();
         this.supportClassificationValidator = supportClassificationValidator;
+        this.chatClient = builder.clone()
+                .defaultSystem("You are a customer support assistant for an online shopping platform.")
+                .defaultAdvisors(
+                        MessageChatMemoryAdvisor.builder(chatMemory).build()
+                )
+                .build();
+        this.classificationClient = builder.clone().build();
     }
 
-    public String chat(String message, String storeName, String tone) {
+    public String chat(String message, String storeName, String tone, String conversationId) {
         // Call the Ollama model and return its response
+
         return  chatClient.prompt().system(
                 s-> s.text(systemMessage)
                         .param("storeName", storeName)
                         .param("tone", tone))
                 .user(message)
+                .advisors(a-> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .content();
     }
@@ -70,12 +83,42 @@ public class SupportChatService {
                 
         Do not include Markdown, explanations, or code fences.
         """;
-        SupportClassification supportClassification =  chatClient.prompt()
+
+        final String classificationSchema = """
+                {
+                  "type": "object",
+                  "properties": {
+                    "category": {
+                      "type": "string",
+                      "enum": ["DELIVERY", "PAYMENT", "REFUND", "ACCOUNT", "OTHER"]
+                    },
+                    "priority": {
+                      "type": "string",
+                      "enum": ["LOW", "MEDIUM", "HIGH"]
+                    },
+                    "requiresHuman": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "category",
+                    "priority",
+                    "requiresHuman",
+                    "summary"
+                  ],
+                  "additionalProperties": false
+                }
+                """;
+
+        SupportClassification supportClassification =  classificationClient.prompt()
                 .system(s-> s.text(instructions))
                 .user(message)
+                .options(OllamaChatOptions.builder().outputSchema(classificationSchema))
                 .call()
                 .entity(SupportClassification.class);
-                //.content();
 
         try {
             return supportClassificationValidator.validate(supportClassification);

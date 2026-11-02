@@ -19,7 +19,10 @@ public class SupportChatController {
 
     @PostMapping("/chat")
     public ChatResponse chat(@RequestBody ChatRequest message) {
-        return new ChatResponse(supportChatService.chat(message.message(), message.storeName(), message.tone()));
+        return new ChatResponse(supportChatService.chat(message.message(),
+                message.storeName(),
+                message.tone(),
+                message.conversationId()));
     }
 
     @PostMapping("/classify")
