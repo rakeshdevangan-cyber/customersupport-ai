@@ -1,5 +1,8 @@
 package com.ai.customer.model;
 
 
-public record ChatRequest(String message, String storeName, String tone) {
+public record ChatRequest(String message,
+                          String storeName,
+                          String tone,
+                          String conversationId) {
 }
