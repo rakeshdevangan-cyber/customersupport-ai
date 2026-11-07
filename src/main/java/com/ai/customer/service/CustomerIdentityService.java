@@ -21,12 +21,10 @@ public class CustomerIdentityService {
 
     public String resolveCustomerId(Jwt jwt)  {
 
-        String customerId = jwt.getSubject();
+        String subject = jwt.getSubject();
         String issuer = jwt.getIssuer().toString();
 
-        //ToDo decrypt customerId from jwt
-
-        return repository.findByIssuerAndSubject(issuer, customerId)
+        return repository.findByIssuerAndSubject(issuer, subject)
                 .map(CustomerIdentity::getCustomerId)
                 .orElseThrow(() ->
                         new UserNotFoundException(

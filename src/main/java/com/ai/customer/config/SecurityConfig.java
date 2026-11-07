@@ -24,6 +24,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET, "/api/orders/**")
                         .hasAuthority("SCOPE_orders:read")
+                        .requestMatchers("/mcp", "/mcp/**")
+                        .hasAuthority("SCOPE_orders:read")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
