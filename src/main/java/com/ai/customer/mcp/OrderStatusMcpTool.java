@@ -3,6 +3,7 @@ package com.ai.customer.mcp;
 import com.ai.customer.dto.OrderResponse;
 import com.ai.customer.entity.CustomerOrder;
 import com.ai.customer.exception.OrderNotFoundException;
+import com.ai.customer.mcp.dto.McpOrderResult;
 import com.ai.customer.service.CustomerIdentityService;
 import com.ai.customer.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,7 @@ public class OrderStatusMcpTool {
             name = "get_order_status",
             description = "Retrieve an order's status and estimated delivery date"
     )
-    public OrderResponse getOrderStatus(String orderId) {
+    public McpOrderResult getOrderStatus(String orderId) {
 
         log.info("MCP get_order_status invoked");
 
@@ -63,13 +64,17 @@ public class OrderStatusMcpTool {
                     customerId
             );
 
-            return OrderResponse.from(order);
+            return McpOrderResult.success(
+                    OrderResponse.from(order)
+            );
 
         } catch (OrderNotFoundException ex) {
+            // Same response for nonexistent and other-customer orders.
             log.info(
                     "MCP order lookup rejected: order not found or not owned"
             );
-            throw ex;
+
+            return McpOrderResult.unavailable();
         }
     }
 }
